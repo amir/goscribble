@@ -15,8 +15,8 @@ import (
 
 const (
 	ENDPOINT                  = "http://ws.audioscrobbler.com/2.0/"
-	APIKEY                    = "148a05f2a76ad179f899ef83e0cb9096"
-	SECRET                    = "58c0f3cd3c7eb1d7b0cf38c703df663b"
+	APIKEY                    = "APIKEY"
+	SECRET                    = "SECRET"
 	METHOD_GET_MOBILE_SESSION = "auth.getMobileSession"
 	METHOD_SCROBBLE_TRACK     = "track.scrobble"
 )
@@ -29,9 +29,9 @@ type Client struct {
 }
 
 type Session struct {
-	XMLName    xml.Name `xml:"lfm"`
-	Error      string   `xml:"error"`
-	Key        string   `xml:"session>key"`
+	XMLName xml.Name `xml:"lfm"`
+	Error   string   `xml:"error"`
+	Key     string   `xml:"session>key"`
 }
 
 func NewClient(username, password string) *Client {
