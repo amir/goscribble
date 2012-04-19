@@ -101,6 +101,7 @@ func (c *Client) ScrobbleTrack(song mpdclient.Song, timestamp int64) error {
 	}
 	h := md5.New()
 	ts := fmt.Sprintf("%s", strconv.FormatInt(timestamp, 10))
+	io.WriteString(h, "album[0]"+song.Album)
 	io.WriteString(h, "api_key"+APIKEY)
 	io.WriteString(h, "artist[0]"+song.Artist)
 	io.WriteString(h, "method"+METHOD_SCROBBLE_TRACK)
@@ -110,6 +111,7 @@ func (c *Client) ScrobbleTrack(song mpdclient.Song, timestamp int64) error {
 	io.WriteString(h, SECRET)
 	apiSig := fmt.Sprintf("%x", h.Sum(nil))
 	resp, err := http.PostForm(ENDPOINT, url.Values{
+		"album[0]":     {song.Album},
 		"api_key":      {APIKEY},
 		"artist[0]":    {song.Artist},
 		"method":       {METHOD_SCROBBLE_TRACK},
