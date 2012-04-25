@@ -28,10 +28,23 @@ type Client struct {
 	AuthToken  string
 }
 
-type Session struct {
+type MobileSession struct {
 	XMLName xml.Name `xml:"lfm"`
 	Error   string   `xml:"error"`
 	Key     string   `xml:"session>key"`
+}
+
+type Scrobble struct {
+	Track          string `xml:"track"`
+	Artist         string `xml:"artist"`
+	Album          string `xml:"album"`
+	IgnoredMessage string `xml:"ignoredMessage"`
+}
+
+type Scrobbles struct {
+	XMLName   xml.Name   `xml:"lfm"`
+	Error     string     `xml:"error"`
+	Scrobbles []Scrobble `xml:"scrobbles>scrobble"`
 }
 
 func NewClient(username, password string) *Client {
@@ -76,7 +89,7 @@ func (c *Client) getMobileSession() (key string, err error) {
 		return
 	}
 
-	s := Session{}
+	s := MobileSession{}
 	err = xml.Unmarshal(body, &s)
 	if err != nil {
 		return
@@ -91,12 +104,11 @@ func (c *Client) getMobileSession() (key string, err error) {
 	return
 }
 
-func (c *Client) ScrobbleTrack(song mpdclient.Song, timestamp int64) error {
+func (c *Client) ScrobbleTrack(song mpdclient.Song, timestamp int64) (scrobbles []Scrobble, err error) {
 	if c.SessionKey == "" {
-		var err error
 		c.SessionKey, err = c.getMobileSession()
 		if err != nil {
-			return err
+			return
 		}
 	}
 	h := md5.New()
@@ -121,14 +133,25 @@ func (c *Client) ScrobbleTrack(song mpdclient.Song, timestamp int64) error {
 		"api_sig":      {apiSig},
 	})
 	if err != nil {
-		return err
+		return
 	}
 
 	defer resp.Body.Close()
-	_, err = ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return
+	}
+	s := Scrobbles{}
+	err = xml.Unmarshal(body, &s)
+	if err != nil {
+		return
+	}
+	if s.Error != "" {
+		err = errors.New(s.Error)
+		return
 	}
 
-	return nil
+	scrobbles = s.Scrobbles
+
+	return
 }

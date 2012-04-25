@@ -31,10 +31,17 @@ func listen() {
 		case <-check.C:
 			playedLongEnough()
 		case track := <-In:
-			err := lastfmClient.ScrobbleTrack(track.Song, track.StartTime)
+			scrobbles, err := lastfmClient.ScrobbleTrack(track.Song, track.StartTime)
 			if err != nil {
 				log.Print(err)
 				In <- track
+			}
+			for _, scrobble := range scrobbles {
+				if scrobble.IgnoredMessage == "" {
+					log.Printf("%s from %s by %s scrobbled\n", scrobble.Track, scrobble.Album, scrobble.Artist)
+				} else {
+					log.Printf("%s from %s by %s ignored: %s\n", scrobble.Track, scrobble.Album, scrobble.Artist, scrobble.IgnoredMessage)
+				}
 			}
 		}
 	}
