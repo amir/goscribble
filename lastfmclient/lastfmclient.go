@@ -19,6 +19,7 @@ const (
 	SECRET                    = "SECRET"
 	METHOD_GET_MOBILE_SESSION = "auth.getMobileSession"
 	METHOD_SCROBBLE_TRACK     = "track.scrobble"
+	METHOD_UPDATE_NOW_PLAYING = "track.updateNowPlaying"
 )
 
 type Client struct {
@@ -45,6 +46,12 @@ type Scrobbles struct {
 	XMLName   xml.Name   `xml:"lfm"`
 	Error     string     `xml:"error"`
 	Scrobbles []Scrobble `xml:"scrobbles>scrobble"`
+}
+
+type NowPlaying struct {
+	XMLName    xml.Name `xml:"lfm"`
+	Error      string   `xml:"error"`
+	NowPlaying Scrobble `xml:"nowplaying"`
 }
 
 func NewClient(username, password string) *Client {
@@ -152,6 +159,54 @@ func (c *Client) ScrobbleTrack(song mpdclient.Song, timestamp int64) (scrobbles 
 	}
 
 	scrobbles = s.Scrobbles
+
+	return
+}
+
+func (c *Client) UpdateNowPlaying(song mpdclient.Song) (scrobble Scrobble, err error) {
+	if c.SessionKey == "" {
+		c.SessionKey, err = c.getMobileSession()
+		if err != nil {
+			return
+		}
+	}
+	h := md5.New()
+	io.WriteString(h, "album"+song.Album)
+	io.WriteString(h, "api_key"+APIKEY)
+	io.WriteString(h, "artist"+song.Artist)
+	io.WriteString(h, "method"+METHOD_UPDATE_NOW_PLAYING)
+	io.WriteString(h, "sk"+c.SessionKey)
+	io.WriteString(h, "track"+song.Title)
+	io.WriteString(h, SECRET)
+	apiSig := fmt.Sprintf("%x", h.Sum(nil))
+	resp, err := http.PostForm(ENDPOINT, url.Values{
+		"album":   {song.Album},
+		"api_key": {APIKEY},
+		"artist":  {song.Artist},
+		"method":  {METHOD_UPDATE_NOW_PLAYING},
+		"sk":      {c.SessionKey},
+		"track":   {song.Title},
+		"api_sig": {apiSig},
+	})
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	s := NowPlaying{}
+	err = xml.Unmarshal(body, &s)
+	if err != nil {
+		return
+	}
+	if s.Error != "" {
+		err = errors.New(s.Error)
+		return
+	}
+
+	scrobble = s.NowPlaying
 
 	return
 }

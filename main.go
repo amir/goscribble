@@ -13,6 +13,7 @@ var (
 	mpdClient      *mpdclient.Client
 	lastfmClient   *lastfmclient.Client
 	In             = make(chan CurrentTrack, 100)
+	NowPlaying     = make(chan mpdclient.Song, 1)
 	mpdPassword    = flag.String("mpd_password", "", "MPD password")
 	lastfmUsername = flag.String("lastfm_username", "username", "Last.fm username")
 	lastfmPassword = flag.String("lastfm_password", "password", "Last.fm password")
@@ -43,6 +44,16 @@ func listen() {
 					log.Printf("%s from %s by %s ignored: %s\n", scrobble.Track, scrobble.Album, scrobble.Artist, scrobble.IgnoredMessage)
 				}
 			}
+		case song := <-NowPlaying:
+			scrobble, err := lastfmClient.UpdateNowPlaying(song)
+			if err != nil {
+				log.Print(err)
+			}
+			if scrobble.IgnoredMessage == "" {
+				log.Printf("Now playing %s from %s by %s", scrobble.Track, scrobble.Album, scrobble.Artist)
+			} else {
+				log.Printf("Ignored now playing %s from %s by %s: %s", scrobble.Track, scrobble.Album, scrobble.Artist, scrobble.IgnoredMessage)
+			}
 		}
 	}
 }
@@ -72,6 +83,15 @@ func playedLongEnough() {
 			}
 		}
 	}
+	if status.ElapsedTime == 0 {
+		song, err := mpdClient.CurrentSong()
+		if err != nil {
+			log.Print(err)
+		} else {
+			NowPlaying <- *song
+		}
+	}
+
 }
 
 func init() {

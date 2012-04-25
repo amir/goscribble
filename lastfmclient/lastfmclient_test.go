@@ -7,7 +7,19 @@ import (
 	"time"
 )
 
-func Test(t *testing.T) {
+func TestNowPlaying(t *testing.T) {
+	song := new(mpdclient.Song)
+	song.Title = "Fearless"
+	song.Artist = "Pink Floyd"
+	song.Album = "Meddle"
+	client := NewClient("username", "password")
+	_, err := client.UpdateNowPlaying(*song)
+	if err != nil {
+		t.Error(err.Error())
+	}
+}
+
+func TestScrobbleTrack(t *testing.T) {
 	song := new(mpdclient.Song)
 	song.Title = "Fearless"
 	song.Artist = "Pink Floyd"
