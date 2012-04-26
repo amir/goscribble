@@ -87,7 +87,7 @@ func playedLongEnough() {
 		song, err := mpdClient.CurrentSong()
 		if err != nil {
 			log.Print(err)
-		} else {
+		} else if song.Artist != "" && song.Title != "" {
 			NowPlaying <- *song
 		}
 	}
